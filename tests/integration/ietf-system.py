@@ -25,6 +25,7 @@ import datetime
 import pwd
 import spwd
 import socket
+import tzlocal
 
 from pydbus import SystemBus
 
@@ -36,7 +37,6 @@ class SystemTestCase(unittest.TestCase):
         if plugin_path is None:
             self.fail(
                 "SYSREPO_GENRAL_PLUGIN_PATH has to point to general plugin executable")
-
         self.data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
         if self.data_dir is None:
             self.fail(
@@ -118,6 +118,96 @@ class HostnameTestCase(SystemTestCase):
                 == True
             )
             assert h == socket.gethostname()
+
+
+class TimezoneTestCase(SystemTestCase):
+    def test_timezone(self):
+        self.startSession("running")
+        # use only non-symlink values in /usr/share/zoneinfo/ !
+        self.session.set_item(
+            IETF_SYSTEM + ":system/clock/timezone-name", "Europe/Berlin"
+        )
+        self.session.apply_changes()
+
+        with self.session.get_data_ly(
+            IETF_SYSTEM + ":system/clock/timezone-name"
+        ) as ietf:
+            self.clock_data = ietf.print_mem("xml")
+
+        print(tzlocal.get_localzone_name())
+        print(os.path.realpath("/etc/localtime"))
+        assert (
+            os.path.realpath("/etc/localtime").find(tzlocal.get_localzone_name()) > -1
+        )
+        assert self.clock_data.find(tzlocal.get_localzone_name()) > -1
+
+        # should not set since this timezone does not exist
+        try:
+            self.session.set_item(
+                IETF_SYSTEM + ":system/clock/timezone-name", "Europe/Silverstone"
+            )
+            self.session.apply_changes()
+        except:
+            assert os.path.realpath("/etc/localtime").find("Europe/Silverstone") == -1
+
+class DnsSearchServerTestCase(SystemTestCase):
+    def test_dns_search_server(self):
+        self.startSession("running")
+        servers = [
+            "testsrv",
+             "examplesrv",
+             "testexamplesrv",
+             "testserver",
+        ]
+
+        for s in servers:
+
+            data = f'<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">\n  <dns-resolver>\n    <search>{s}</search>\n  </dns-resolver>\n</system>\n'
+            xml_data = open("data/system_dns_search.xml", "w")
+            xml_data.write(data)    
+            xml_data.close()
+
+            self.edit_config(data)
+
+        dns_data = self.session.get_data(IETF_SYSTEM + ":system/dns-resolver")
+        dns_data_servers = dns_data.get("system").get("dns-resolver").get("search")
+
+        dns_search_all = []
+        dns_initial_servers = None
+
+        # if there is current search servers in the list
+        try:
+            dns_initial_servers = self.initial_ietf_data.get("system").get("dns-resolver").get("search")
+        except:
+            dns_initial_servers = []
+
+        for search_server in dns_initial_servers:
+            dns_search_all.append(search_server)
+
+        for search_server in servers:
+            dns_search_all.append(search_server)
+
+        #check datastore
+        self.assertEqual(dns_search_all, dns_data_servers, "Datastore doesn't match with test case!")
+        
+        #apply the changes
+        self.session.apply_changes()
+
+        #get all from system bus
+        bus = SystemBus()
+        dns_search_bus = bus.get("org.freedesktop.resolve1").Domains
+
+        #assert the system bus with datastore
+        bus_servers = []
+        for server in dns_search_bus:
+            bus_servers.append(server[1])
+        
+        self.assertEqual(bus_servers,dns_search_all, "Servers do not match!")
+
+
+
+
+
 
 # class SystemTestCase(unittest.TestCase):
 #     def setUp(self):
