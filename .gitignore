@@ -4,3 +4,9 @@ build/
 .cache/
 .test/
 location_info
+tests/integration/__pycache__/ietf-system.cpython-310-pytest-7.3.1.pyc
+tests/integration/test-venv/lib64
+tests/integration/test-venv/pyvenv.cfg
+tests/integration/test-venv/bin/python
+tests/integration/test-venv/bin/python3
+tests/integration/test-venv/bin/python3.10
