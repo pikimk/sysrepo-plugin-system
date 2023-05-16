@@ -1,0 +1,10 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+<dns-resolver>
+<server> 
+ <name>arch.example.com</name> 
+ <udp-and-tcp>
+ <address>10.10.10.10</address> 
+ </udp-and-tcp> 
+</server>
+</dns-resolver>
+</system>

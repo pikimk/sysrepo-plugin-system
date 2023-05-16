@@ -41,6 +41,10 @@ class SystemTestCase(unittest.TestCase):
         if self.data_dir is None:
             self.fail(
                 "GEN_PLUGIN_DATA_DIR has to point to general plugin executable")
+        self.ifindex = os.environ.get('IFINDEX')
+        if self.ifindex is None:
+            self.fail(
+                "IFINDEX has to be provided in order to test DNS")
         self.plugin = subprocess.Popen(
             [plugin_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
@@ -176,9 +180,10 @@ class DnsSearchServerTestCase(SystemTestCase):
         dns_initial_servers = None
 
         # if there is current search servers in the list
-        try:
-            dns_initial_servers = self.initial_ietf_data.get("system").get("dns-resolver").get("search")
-        except:
+        
+        dns_initial_servers = self.initial_ietf_data.get("system").get("dns-resolver").get("search")
+        
+        if dns_initial_servers == None:
             dns_initial_servers = []
 
         for search_server in dns_initial_servers:
@@ -205,122 +210,83 @@ class DnsSearchServerTestCase(SystemTestCase):
         self.assertEqual(bus_servers,dns_search_all, "Servers do not match!")
 
 
+class DnsServerTestCase(SystemTestCase):
+    def test_dns_server(self):
+        self.startSession("running")
 
+        # dns_data= self.session.get_data(IETF_SYSTEM + ":system/dns-resolver")
 
+        #dns server objects from current datastore
+        dns_resolver_servers = None
 
+        dns_servers_test = [
+            {'name': 'windows.example.com', 'udp-and-tcp': {'address': '1.2.3.4'}},
+            {'name': 'ubuntu.example.com', 'udp-and-tcp': {'address': '1.9.2.3'}},
+            {'name': 'arch.example.com', 'udp-and-tcp': {'address': '10.10.10.10'}}
+        ]
 
-# class SystemTestCase(unittest.TestCase):
-#     def setUp(self):
-#         plugin_path = os.environ.get('SYSREPO_GENERAL_PLUGIN_PATH')
-#         if plugin_path is None:
-#             self.fail(
-#                 "SYSREPO_GENRAL_PLUGIN_PATH has to point to general plugin executable")
+                                                                # <server>
+                                                                #     <name>1.1.1.1</name>
+                                                                #     <udp-and-tcp>
+                                                                # 	    <address>1.1.1.1</address>
+                                                                #     </udp-and-tcp>
+                                                                # </server>
 
-#         self.data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
-#         if self.data_dir is None:
-#             self.fail(
-#                 "GEN_PLUGIN_DATA_DIR has to point to general plugin executable")
-#         self.plugin = subprocess.Popen(
-#             [plugin_path],
-#             env={
-#                 "GEN_PLUGIN_DATA_DIR": self.data_dir},
-#             stdout=subprocess.DEVNULL,
-#             stderr=subprocess.DEVNULL)
-
-#         self.conn = sysrepo.SysrepoConnection()
-#         self.session = self.conn.start_session("running")
-
-#         # self.initial_data = self.session.get_data("/ietf-system:system")
-        
-#         time.sleep(2)
-
-#     def tearDown(self):
-#         self.session.stop()
-#         self.conn.disconnect()
-#         self.plugin.send_signal(signal.SIGINT)
-#         self.plugin.wait()
-
-#     def load_initial_data(self, path):
-#         ctx = self.conn.get_ly_ctx()
-
-#         self.session.replace_config_ly(None, "ietf-system")
-#         with open(path, "r") as f:
-#             data = f.read()
-#             data = ctx.parse_data_mem(data, "xml", config=True, strict=True)
-#             self.session.replace_config_ly(data, "ietf-system")
-#             data.free()
-
-#     def edit_config(self, path):
-#          with self.session.get_ly_ctx() as ctx:
-#             if path:
-#                 with open(path, "r") as f:
-#                     data = f.read()
-#             ly_data = ctx.parse_data_mem(data, "xml", strict=True, no_state=True)
-#             self.session.edit_batch_ly(ly_data, default_operation="merge")
-#             ly_data.free()
-#             self.session.apply_changes()
+        for s in dns_servers_test:
             
+            data = f'<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">\n<dns-resolver>\n<server> \n <name>{s["name"]}</name> \n <udp-and-tcp>\n <address>{s["udp-and-tcp"]["address"]}</address> \n </udp-and-tcp> \n</server>\n</dns-resolver>\n</system>\n'
+            xml_data = open("data/system_dns_server.xml", "w")
+            xml_data.write(data)    
+            xml_data.close()
 
-
-# class HostnameTestCase(SystemTestCase):
-#     def test_hostname(self):
-#         initial_data = self.session.get_data('/ietf-system:system').get("system")
-#         expected_hostname = "example.host.test"
-
-#         #self.edit_config("data/system_hostname.xml")
-#         self.session.replace_config({"system":{"hostname":"example.host.test"}}, "ietf-system")
-
-#         with self.session.get_data_ly('/ietf-system:system/hostname') as data:
-#             hostname = data.print_dict()
-#             hostname_str = str(hostname.get('system').get('hostname'))
-
-#         # hostname_str = self.session.get_data("/ietf-system:system/hostname").get("system").get("hostname")
-
-#         self.assertEqual(hostname_str, expected_hostname, "hostname data is wrong ")
-
-#         real_hostname = os.uname()[1]
-#         self.assertEqual(
-#             real_hostname,
-#             "example.host.test",
-#             "hostname on system doesn't match set hostname")
-
-#         self.session.replace_config(initial_data, "ietf-system")
-
-  
-# class TimezoneTestCase(SystemTestCase):
-#     def test_timezone(self):
-#         tzdata = '/etc/localtime'
-#         store_timezone = os.readlink(tzdata)
-#         expected_timezone_name = 'Europe/Stockholm'
-#         init_data = self.session.get_data("/ietf-system:*")
-
-#         self.session.replace_config({"system":{"clock": {"timezone-name":"Europe/Stockholm"}}}, 'ietf-system')
-
-#         with self.session.get_data_ly('/ietf-system:system/clock/timezone-name') as data:
-#             timezone_name = data.print_dict()
-#             timezone_name_str = str(timezone_name.get('system').get('clock').get('timezone-name'))
+            self.edit_config(data)
         
-#         self.assertEqual(timezone_name_str, expected_timezone_name, "timezone_name data is wrong")
-#         real_timezone = os.readlink('/etc/localtime')
-#         self.assertEqual(
-#             real_timezone,
-#             '/usr/share/zoneinfo/Europe/Stockholm', 
-#             "timezone on system doesn't match set timezone")
+        #check the datastore
+        dns_data = self.session.get_data(IETF_SYSTEM + ":system/dns-resolver")
 
-#         self.session.replace_config(self.initial_data, 'ietf-system')
+        #try to fetch the servers from datastore, and not be None if it is empty
+        dns_resolver_servers = dns_data.get("system").get("dns-resolver").get("server")
+        if dns_resolver_servers == None:
+            dns_resolver_servers = []
 
+        dns_initial = self.initial_ietf_data.get("system").get("dns-resolver").get("server")
+        if dns_initial == None:
+            dns_initial = []
 
-# # class DnsSearchTestCase(SystemTestCase):
-# #     def test_dns_search_server(self):
-# #         bus = SystemBus()
-# #         dev = bus.get("org.freedesktop.hostname1")
-# #         self.assertEqual(1, 2, "Params not equal" + dev.Hostname)
+        #expand into one
+        dns_init_and_test = [*dns_initial, *dns_servers_test]
 
+        self.assertEqual(dns_init_and_test, dns_resolver_servers, "Test servers and datastore doesnt match!")
 
-# # class DummyTest(SystemTestCase):
-# #     def test_dummy(self):
-# #         self.assertEqual(1, 1, "Params not equal")
+        #now assert the system dns, and test array via sdbus
 
+        bus = SystemBus()
+        dev = bus.get("org.freedesktop.resolve1").DNSEx
+        
+        dns_server_obj = []
+
+        for dbus_srv in dev:
+           
+            if str(dbus_srv[0]) == self.ifindex:
+
+                if dbus_srv[1] == 2:
+                    ip_string =".".join(str(octet) for octet in dbus_srv[2])
+                elif dbus_srv[2] == 10:
+                    ipbytes = bytes(dbus_srv[2])
+                    ip_string = socket.inet_ntop(socket.AF_INET6, ipbytes)
+
+                temp_dns = {
+                    # "ifindex" : dbus_srv[0],
+                    # "type" : dbus_srv[1],
+                    # "address" : ip_string,
+                    "name" : dbus_srv[4],
+                    "udp-and-tcp":{"address":ip_string}
+                }
+
+                dns_server_obj.append(temp_dns)
+        
+        self.assertEqual(dns_init_and_test, dns_server_obj,"Dns Servers do not match with the ones on the system!")
+       
 
 if __name__ == '__main__':
     unittest.main()
