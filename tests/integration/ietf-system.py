@@ -222,7 +222,8 @@ class DnsServerTestCase(SystemTestCase):
         dns_servers_test = [
             {'name': 'windows.example.com', 'udp-and-tcp': {'address': '1.2.3.4'}},
             {'name': 'ubuntu.example.com', 'udp-and-tcp': {'address': '1.9.2.3'}},
-            {'name': 'arch.example.com', 'udp-and-tcp': {'address': '10.10.10.10'}}
+            {'name': 'arch.example.com', 'udp-and-tcp': {'address': '10.10.10.10'}},
+            {'name': 'ipv6.example.com', 'udp-and-tcp': {'address': '2001:db8:1::ab9:c0a8:102'}}
         ]
 
                                                                 # <server>
@@ -268,10 +269,11 @@ class DnsServerTestCase(SystemTestCase):
         for dbus_srv in dev:
            
             if str(dbus_srv[0]) == self.ifindex:
-
+        
                 if dbus_srv[1] == 2:
                     ip_string =".".join(str(octet) for octet in dbus_srv[2])
-                elif dbus_srv[2] == 10:
+                elif dbus_srv[1] == 10:
+                    
                     ipbytes = bytes(dbus_srv[2])
                     ip_string = socket.inet_ntop(socket.AF_INET6, ipbytes)
 

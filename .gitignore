@@ -11,3 +11,4 @@ tests/integration/test-venv/bin/python
 tests/integration/test-venv/bin/python3
 tests/integration/test-venv/bin/python3.10
 tests/integration/data/system_dns_search.xml
+tests/integration/__pycache__

@@ -1,9 +1,9 @@
 <system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
 <dns-resolver>
 <server> 
- <name>arch.example.com</name> 
+ <name>ipv6.example.com</name> 
  <udp-and-tcp>
- <address>10.10.10.10</address> 
+ <address>2001:db8:1::ab9:c0a8:102</address> 
  </udp-and-tcp> 
 </server>
 </dns-resolver>
