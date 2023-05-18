@@ -181,7 +181,10 @@ class DnsSearchServerTestCase(SystemTestCase):
 
         # if there is current search servers in the list
         
-        dns_initial_servers = self.initial_ietf_data.get("system").get("dns-resolver").get("search")
+        try:
+            dns_initial_servers = self.initial_ietf_data.get("system").get("dns-resolver").get("search")
+        except:
+            dns_initial_servers = []
         
         if dns_initial_servers == None:
             dns_initial_servers = []
@@ -250,7 +253,11 @@ class DnsServerTestCase(SystemTestCase):
         if dns_resolver_servers == None:
             dns_resolver_servers = []
 
-        dns_initial = self.initial_ietf_data.get("system").get("dns-resolver").get("server")
+        try:
+            dns_initial = self.initial_ietf_data.get("system").get("dns-resolver").get("server")
+        except:
+            dns_initial = []
+
         if dns_initial == None:
             dns_initial = []
 
